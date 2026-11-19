@@ -10,3 +10,7 @@ venv/
 *.gguf
 *.onnx
 *.pt
+/backups/
+/integration_results/
+*.db-wal
+*.db-shm
