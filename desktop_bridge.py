@@ -106,3 +106,29 @@ def save_confirmed(engine, fields, expand_range=False):
             )
             ids.append(task_id)
     return ids
+
+
+def update_confirmed(engine, task_id, fields):
+    """Edit one saved occurrence; cancel stale reminders atomically with time changes."""
+    task = prepare_tasks(fields)[0]
+    with engine._lock, engine._get_connection() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        previous = conn.execute("SELECT * FROM Tasks WHERE task_id=?", (task_id,)).fetchone()
+        if previous is None:
+            raise ValueError("任務已不存在，請重新整理清單")
+        changed_time = any(previous[key] != task[key] for key in ("due_date", "start_time", "end_time"))
+        conn.execute(
+            "UPDATE Tasks SET title=?,due_date=?,start_time=?,end_time=?,location=? WHERE task_id=?",
+            (task["title"], task["due_date"], task["start_time"], task["end_time"], task["location"], task_id),
+        )
+        cancelled = 0
+        if changed_time:
+            cancelled = conn.execute("DELETE FROM Reminders WHERE task_id=? AND is_triggered=0", (task_id,)).rowcount
+        else:
+            for reminder in conn.execute("SELECT reminder_id,message FROM Reminders WHERE task_id=? AND is_triggered=0", (task_id,)).fetchall():
+                prefix = "測試提醒：" if reminder["message"].startswith("測試提醒：") else "任務提醒："
+                message = prefix + task["title"]
+                if task["location"]:
+                    message += "\n地點：" + task["location"]
+                conn.execute("UPDATE Reminders SET message=? WHERE reminder_id=?", (message, reminder["reminder_id"]))
+    return cancelled

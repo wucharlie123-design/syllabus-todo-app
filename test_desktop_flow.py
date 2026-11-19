@@ -4,12 +4,13 @@ import json
 import sqlite3
 import tempfile
 import unittest
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from unittest.mock import patch
 
 from backend_db import BackendEngine
-from desktop_bridge import extract_image, prepare_tasks, save_confirmed
+from desktop_bridge import extract_image, prepare_tasks, save_confirmed, update_confirmed
+from desktop_reminders import ReminderService
 
 
 class DesktopFlowTests(unittest.TestCase):
@@ -88,6 +89,49 @@ class DesktopFlowTests(unittest.TestCase):
             with self.assertRaises(URLError):
                 extract_image(image)
         self.assertEqual(self.engine.get_all_tasks(), [])
+
+    def test_edit_time_cancels_stale_reminders_and_preserves_task_id(self):
+        task_id = save_confirmed(self.engine, self.fields)[0]
+        reminders = ReminderService(self.engine, now=lambda: datetime(2026, 11, 19))
+        reminders.schedule_at(task_id, '2027-04-23 09:00')
+        self.assertEqual(update_confirmed(self.engine, task_id, dict(self.fields, date='2027-04-24')), 1)
+        self.assertEqual(self.engine.get_task_by_id(task_id)['due_date'], '2027-04-24')
+        self.assertEqual(reminders.pending(task_id), [])
+
+    def test_edit_name_updates_reminder_message_without_changing_time(self):
+        task_id = save_confirmed(self.engine, self.fields)[0]
+        reminders = ReminderService(self.engine, now=lambda: datetime(2026, 11, 19))
+        rid = reminders.schedule_at(task_id, '2027-04-23 09:00')
+        self.assertEqual(update_confirmed(self.engine, task_id, dict(self.fields, title='新名稱', location='新地點')), 0)
+        pending = reminders.pending(task_id)
+        self.assertEqual(pending[0]['reminder_id'], rid)
+        self.assertIn('新名稱', pending[0]['message'])
+        self.assertIn('新地點', pending[0]['message'])
+
+    def test_edit_preserves_completed_status(self):
+        task_id = save_confirmed(self.engine, self.fields)[0]
+        self.engine.toggle_task_status(task_id)
+        update_confirmed(self.engine, task_id, dict(self.fields, title='已修改'))
+        self.assertEqual(self.engine.get_task_by_id(task_id)['status'], 'Completed')
+
+    def test_invalid_edit_preserves_task_and_reminders(self):
+        task_id = save_confirmed(self.engine, self.fields)[0]
+        reminders = ReminderService(self.engine, now=lambda: datetime(2026, 11, 19))
+        reminders.schedule_at(task_id, '2027-04-23 09:00')
+        with self.assertRaises(ValueError):
+            update_confirmed(self.engine, task_id, dict(self.fields, date=''))
+        self.assertEqual(self.engine.get_task_by_id(task_id)['due_date'], self.fields['date'])
+        self.assertEqual(len(reminders.pending(task_id)), 1)
+
+    def test_edit_and_reminder_cancellation_rollback_together(self):
+        task_id = save_confirmed(self.engine, self.fields)[0]
+        self.engine.add_reminder(task_id, '2027-04-23 09:00', 'keep')
+        with self.engine._get_connection() as conn:
+            conn.execute("CREATE TRIGGER prevent_test_delete BEFORE DELETE ON Reminders BEGIN SELECT RAISE(ABORT, 'test rollback'); END")
+        with self.assertRaises(sqlite3.IntegrityError):
+            update_confirmed(self.engine, task_id, dict(self.fields, date='2027-04-24'))
+        self.assertEqual(self.engine.get_task_by_id(task_id)['due_date'], '2027-04-23')
+        self.assertEqual(len(self.engine.get_upcoming_reminders()), 1)
 
 
 if __name__ == "__main__":
