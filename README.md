@@ -1,8 +1,14 @@
 # Campus AI Syllabus To-Do Assistant
 
+## Android 手機 MVP
+
+手機版專案位於 [`android_app/`](android_app/README.md)。它會在手機上執行離線 OCR 與 Python 事件解析，提供拍照／選圖、草稿確認、待辦管理及 Android 系統提醒；不需要連接 Mac 或 Ollama。
+
+請以手機版的 [README](android_app/README.md)、[實機驗收](android_app/MOBILE_ACCEPTANCE.md) 與 [展示流程](android_app/MOBILE_DEMO.md) 為交付說明。以下桌面版保留作先前原型與比較，不等同於手機部署。
+
 已驗收的 **Mac 桌面 MVP**：圖片匯入 → 本地模型辨識 → 人工確認草稿 → SQLite 任務清單 → 編輯／完成／刪除 → App 內提醒。
 
-目前版本不包含 Android App 或 App 關閉時的背景系統通知。
+桌面原型本身不包含 Android App 或 App 關閉時的背景系統通知；手機功能請使用上方 android_app 專案。
 
 ## 環境
 
