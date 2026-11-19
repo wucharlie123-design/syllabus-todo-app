@@ -235,6 +235,7 @@ class MainActivity : Activity() {
     }
 
     private fun recognize(uri: Uri) {
+        val startedAt = android.os.SystemClock.elapsedRealtime()
         setBusy(true,"正在手機上辨識文字，請稍候…")
         executor.execute {
             try {
@@ -252,12 +253,12 @@ class MainActivity : Activity() {
                 val chinese = TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
                 chinese.process(image).addOnSuccessListener { result ->
                     chinese.close()
-                    if (result.text.any { it in '\u3400'..'\u9fff' }) processText(result.text)
+                    if (result.text.any { it in '\u3400'..'\u9fff' }) processText(result.text, startedAt)
                     else {
                         val latin = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
                         latin.process(image).addOnSuccessListener { second ->
-                            latin.close(); processText(if (second.text.length > result.text.length) second.text else result.text)
-                        }.addOnFailureListener { failure -> latin.close(); processText(result.text) }
+                            latin.close(); processText(if (second.text.length > result.text.length) second.text else result.text, startedAt)
+                        }.addOnFailureListener { failure -> latin.close(); processText(result.text, startedAt) }
                     }
                 }.addOnFailureListener { failure ->
                     chinese.close(); setBusy(false,"辨識失敗，可換圖或手動新增。"); error("辨識失敗",failure)
@@ -268,21 +269,32 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun processText(text: String) {
+    private fun processText(text: String, imageStartedAt: Long? = null) {
+        val ocrFinishedAt = android.os.SystemClock.elapsedRealtime()
         if (text.isBlank()) {
             runOnUiThread { setBusy(false,"沒有辨識到文字，可換清楚的圖片或手動新增。"); toast("圖片沒有可辨識文字") }
             return
         }
         executor.execute {
             try {
-                val parsed = Core.extract(text, LocalDate.now().toString())
+                val parseStartedAt = android.os.SystemClock.elapsedRealtime()
+                val referenceDate = LocalDate.now().toString()
+                val parsed = Core.extract(text, referenceDate)
+                val finishedAt = android.os.SystemClock.elapsedRealtime()
+                parsed.put("metrics", JSONObject()
+                    .put("input_kind", if (imageStartedAt != null) "image" else "pasted_text")
+                    .put("reference_date", referenceDate)
+                    .put("decode_ocr_ms", imageStartedAt?.let { ocrFinishedAt-it } ?: JSONObject.NULL)
+                    .put("parse_ms", finishedAt-parseStartedAt)
+                    .put("total_ms", finishedAt-(imageStartedAt ?: ocrFinishedAt))
+                    .put("app_version", "0.2.1-evaluation"))
                 File(filesDir,"last_ocr.json").writeText(parsed.toString(2))
                 val array = parsed.getJSONArray("events")
                 drafts = (0 until array.length()).map { array.getJSONObject(it) }
                 draftIndex = 0
                 runOnUiThread {
                     if (!isDestroyed && !isFinishing) {
-                        setBusy(false,"擷取 ${drafts.size} 筆草稿，請確認後儲存。")
+                        setBusy(false,"擷取 ${drafts.size} 筆草稿，耗時 ${finishedAt-(imageStartedAt ?: ocrFinishedAt)} 毫秒，請確認後儲存。")
                         if (drafts.isNotEmpty()) nextDraft()
                     }
                 }

@@ -8,3 +8,5 @@ app/build/
 *.jks
 __pycache__/
 *.pyc
+evaluation/local_data/
+evaluation/reports/
