@@ -150,5 +150,14 @@ class MobileCoreTests(unittest.TestCase):
         events=json.loads(core.extract_events('讀書會\n日期:2026年12月5日\n時間:14:00-16:00','2026-11-19'))['events']
         self.assertEqual(len(events),1)
         self.assertEqual(events[0]['date'],'2026-12-05')
+    def test_multiple_events_keep_their_own_times_and_locations(self):
+        text='AI 工作坊\n2026年12月5日\n時間:14:00-16:00\n地點:A教室\n攝影講座\n2026年12月6日\n時間:09:00-11:00\n地點:B教室'
+        events=json.loads(core.extract_events(text,'2026-11-19'))['events']
+        self.assertEqual([(e['title'],e['start_time'],e['end_time'],e['location']) for e in events],
+                         [('AI 工作坊','14:00','16:00','A教室'),('攝影講座','09:00','11:00','B教室')])
+    def test_later_event_does_not_inherit_missing_clock_or_location(self):
+        text='攝影講座\n2026年12月5日\n時間:14:00-16:00\n地點:A教室\n音樂會\n2026年12月6日'
+        events=json.loads(core.extract_events(text,'2026-11-19'))['events']
+        self.assertEqual((events[1]['start_time'],events[1]['end_time'],events[1]['location']),('','',''))
 
 if __name__=='__main__':unittest.main(verbosity=2)

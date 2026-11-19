@@ -1,0 +1,27 @@
+{
+  "id": "two-events-different-times",
+  "split": "development",
+  "input_kind": "manually_transcribed_text",
+  "reference_date": "2026-11-19",
+  "text": "AI 工作坊\n2026年12月5日\n時間:14:00-16:00\n地點:A教室\n攝影講座\n2026年12月6日\n時間:09:00-11:00\n地點:B教室",
+  "expected": [
+    {
+      "title": "AI 工作坊",
+      "date": "2026-12-05",
+      "end_date": "",
+      "weekdays": "",
+      "start_time": "14:00",
+      "end_time": "16:00",
+      "location": "A教室"
+    },
+    {
+      "title": "攝影講座",
+      "date": "2026-12-06",
+      "end_date": "",
+      "weekdays": "",
+      "start_time": "09:00",
+      "end_time": "11:00",
+      "location": "B教室"
+    }
+  ]
+}

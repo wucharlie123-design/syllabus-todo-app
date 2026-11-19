@@ -1,0 +1,18 @@
+{
+  "id": "single-text",
+  "split": "development",
+  "input_kind": "manually_transcribed_text",
+  "reference_date": "2026-11-19",
+  "text": "社區讀書分享會\n2026年12月5日\n時間:14:00-16:00\n地點:社區活動中心201室",
+  "expected": [
+    {
+      "title": "社區讀書分享會",
+      "date": "2026-12-05",
+      "end_date": "",
+      "weekdays": "",
+      "start_time": "14:00",
+      "end_time": "16:00",
+      "location": "社區活動中心201室"
+    }
+  ]
+}

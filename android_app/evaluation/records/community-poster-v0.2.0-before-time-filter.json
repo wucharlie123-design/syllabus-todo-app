@@ -1,0 +1,37 @@
+{
+  "events": [
+    {
+      "title": "社區證書分亨會",
+      "date": "2026-12-05",
+      "end_date": "",
+      "weekdays": "",
+      "start_time": "14:00",
+      "end_time": "16:00",
+      "location": "社區活動中心201室",
+      "year_inferred": false,
+      "notes": [
+        "圖片含多個日期，請確認事件與時間的對應"
+      ],
+      "needs_review": true,
+      "source_text": "社區證書分亨會\n2026年12月5日 (星期六)\n時問: 14:00-16:00\n地點: 社區活動中心201室\n歡迎一起閱讀與交流"
+    },
+    {
+      "title": "社區證書分亨會",
+      "date": "",
+      "end_date": "",
+      "weekdays": "",
+      "start_time": "14:00",
+      "end_time": "16:00",
+      "location": "社區活動中心201室",
+      "year_inferred": false,
+      "notes": [
+        "日期無效或不完整，請手動確認",
+        "圖片含多個日期，請確認事件與時間的對應"
+      ],
+      "needs_review": true,
+      "source_text": "社區證書分亨會\n2026年12月5日 (星期六)\n時問: 14:00-16:00\n地點: 社區活動中心201室\n歡迎一起閱讀與交流"
+    }
+  ],
+  "text": "社區證書分亨會\n2026年12月5日 (星期六)\n時問: 14:00-16:00\n地點: 社區活動中心201室\n歡迎一起閱讀與交流",
+  "truncated": false
+}

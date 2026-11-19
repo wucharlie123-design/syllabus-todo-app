@@ -337,7 +337,7 @@ def extract_events(text, reference_date=''):
         first = WEEKDAY[repeated.group(1)]
         last = WEEKDAY[repeated.group(2)] if repeated.group(2) else first
         weekdays = list(range(first,last+1)) if last>=first else list(range(first,8))+list(range(1,last+1))
-    events, i = [], 0
+    events, date_offsets, i = [], [], 0
     while i < len(matches):
         match = matches[i]
         notes = []
@@ -364,7 +364,31 @@ def extract_events(text, reference_date=''):
                        'start_time':start_time or '', 'end_time':end_time or '',
                        'location':location,'year_inferred':inferred,'notes':notes,
                        'needs_review':True,'source_text':text})
+        date_offsets.append(match.start())
         i += 1
+    if len(events) > 1:
+        # Associate fields with each event block, never copy the first event's
+        # clock/location to all later dates. Missing local evidence stays blank.
+        starts, cursor = [], 0
+        for line in lines:
+            starts.append(cursor)
+            cursor += len(line) + 1
+        boundaries = []
+        for event, offset in zip(events, date_offsets):
+            date_line = text[:offset].count('\n')
+            titles = [index for index in range(date_line + 1)
+                      if lines[index] == event['title']]
+            boundary = starts[titles[-1]] if titles else starts[date_line]
+            if boundaries and boundary <= boundaries[-1]:
+                boundary = starts[date_line]
+            boundaries.append(boundary)
+        for index, event in enumerate(events):
+            left = 0 if index == 0 else boundaries[index]
+            right = boundaries[index+1] if index+1 < len(events) else len(text)
+            local = text[left:right]
+            begin, finish = _times(local)
+            event['start_time'], event['end_time'] = begin or '', finish or ''
+            event['location'] = _location(local.splitlines())
     if not events:
         events=[{'title':_title(lines),'date':'','end_date':'','weekdays':'',
                  'start_time':start_time or '', 'end_time':end_time or '',
